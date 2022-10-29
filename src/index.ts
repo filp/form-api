@@ -46,7 +46,7 @@ abstract class Field {
     this.data.archived = true;
   }
 
-  public clearCondition() {
+  public clearLinkedFieldCondition() {
     this.data = {
       ...this.data,
       linkedFieldId: undefined,
@@ -58,14 +58,14 @@ abstract class Field {
     };
   }
 
-  // Adds a condition for this field, making its visibility dependent on the
+  // Sets the condition for this field, making its visibility dependent on the
   // state of another field, based on the condition rules argument.
   //
   // In this rough implementation, we look at the runtime type and use that to decide
   // which underlying property to assign it to.
   //
   // This produces some pretty ugly code.
-  public addCondition<MatchValueT>(
+  public setLinkedFieldCondition<MatchValueT>(
     linkedField: Field,
     condition: FieldConditionOptions<MatchValueT>
   ) {
@@ -322,7 +322,7 @@ export class Form {
     // just showing a warning in the interface, with the option to undo the archival).
     this.fields.forEach((relatedField) => {
       if (relatedField.data.linkedFieldId === field.id) {
-        relatedField.clearCondition();
+        relatedField.clearLinkedFieldCondition();
       }
     });
   }
