@@ -4,8 +4,73 @@ An interface & data model for defining user-created forms, and accepting form su
 
 # API
 
+The following example outlines creating a form, adding fields to that form, and setting conditions between fields:
+
 ```ts
-const form = new Form();
+const form = new Form({
+  id: 'legit-form-from-ur-bank',
+  title: 'Super Legit Form',
+  description: 'This is a legit and not suspicious form',
+});
+
+const cardNumberField = new TextField({
+  name: 'credit_card',
+  format: 'text',
+  label: 'Credit Card Number',
+  maxLength: 16,
+  required: true,
+});
+
+const passportPhoto = new FileField({
+  name: 'passport_photo',
+  label: 'Photo of your Passport',
+  validMimeTypes: ['image/jpeg', 'image/png'],
+  validExtensions: ['.jpg', '.png'],
+  required: true,
+});
+
+const email = new TextField({
+  name: 'email',
+  label: 'Your Email',
+  format: 'email',
+});
+
+const subscribeNewsletterCheckbox = new BooleanField({
+  name: 'subscribe_newsletter',
+  label: 'Subscribe to our newsletter?',
+  defaultValue: true,
+});
+
+// Only show the checkbox to subscribe to our newsletter if the user provided
+// their email.
+subscribeNewsletterCheckbox.setLinkedFieldCondition(email, {
+  hasValue: true,
+});
+
+const emailCadence = new SelectField({
+  name: 'email_cadence',
+  label: 'How often can we send you emails?',
+});
+
+const everyDayCadence = emailCadence.addChoice(
+  new SelectFieldChoice({
+    id: 'every_day',
+    label: 'Every single day',
+  })
+);
+
+emailCadence.setDefaultChoice(everyDayCadence);
+
+// Only show the cadence selector if the user answered yes on the checkbox:
+emailCadence.setLinkedFieldCondition(subscribeNewsletterCheckbox, {
+  matchValue: true,
+});
+
+form.addField(cardNumberField);
+form.addField(passportPhoto);
+form.addField(email);
+form.addField(subscribeNewsletterCheckbox);
+form.addField(emailCadence);
 ```
 
 # Data Model

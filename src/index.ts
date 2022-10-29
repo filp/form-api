@@ -13,6 +13,11 @@ type FieldConditionOptions<MatchValueT> = Pick<Field['data'], 'hasValue'> & {
   matchValue: MatchValueT;
 };
 
+type WithOptionalArchived<T extends { archived: boolean }> = Omit<
+  T,
+  'archived'
+> & { archived?: boolean };
+
 abstract class Field {
   public data: {
     id: ID;
@@ -23,6 +28,7 @@ abstract class Field {
     description?: string;
     archived: boolean;
     type: 'text' | 'boolean' | 'select' | 'file';
+    required?: boolean;
     linkedFieldId?: ID;
     hasValue?: boolean;
     matchValueStr?: string;
@@ -38,8 +44,11 @@ abstract class Field {
     return this.data.archived;
   }
 
-  constructor(data: Field['data']) {
-    this.data = data;
+  constructor(data: WithOptionalArchived<Field['data']>) {
+    this.data = {
+      ...data,
+      archived: typeof data.archived === 'undefined' ? false : data.archived,
+    };
   }
 
   public setArchived() {
@@ -69,6 +78,12 @@ abstract class Field {
     linkedField: Field,
     condition: FieldConditionOptions<MatchValueT>
   ) {
+    if (this.data.formId !== linkedField.data.formId || linkedField.archived) {
+      throw new Error(
+        'Cannot set linked field condition on an archived field, or fields in another form'
+      );
+    }
+
     const { matchValue, ...conditionProperties } = condition;
 
     const conditionMatchProperties = {
@@ -178,8 +193,11 @@ class SelectFieldChoice {
     return this.data.archived;
   }
 
-  constructor(data: SelectFieldChoice['data']) {
-    this.data = data;
+  constructor(data: WithOptionalArchived<SelectFieldChoice['data']>) {
+    this.data = {
+      ...data,
+      archived: typeof data.archived === 'undefined' ? false : data.archived,
+    };
   }
 
   public setArchived() {
@@ -297,8 +315,11 @@ export class Form {
     return this.data.id;
   }
 
-  constructor(data: Form['data']) {
-    this.data = data;
+  constructor(data: WithOptionalArchived<Form['data']>) {
+    this.data = {
+      ...data,
+      archived: typeof data.archived === 'undefined' ? false : data.archived,
+    };
   }
 
   // Soft-removes a field from this form by marking it as archived.
