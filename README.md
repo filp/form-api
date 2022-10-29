@@ -239,7 +239,7 @@ map against a boolean field type using `matchValueBool`, and against a text fiel
 
 ### Alternate approaches to consider:
 
-_Tracking relationships as first-class entity:_
+**Tracking relationships as first-class entity:**
 
 This approach may be the natural progression of the proposed solution. We can use separate entities to map the conditional relationship between fields, potentially for each field type, or field value scalar type.
 
@@ -250,11 +250,11 @@ Tracking conditional relationships with entities for each field type makes it po
 
 This wasn't the chosen approach since it doesn't fit a clear project need at the moment, and introduces considerable complexity/boilerplate.
 
-_Sub-object field for match values:_
+**Sub-object field for match values:**
 
 A sub-object field (e.g JSONB) arguably resolves most of the column "ickyness" around match values, but potentially introduces type safety issues (which can be solved with, for example, JSON schema).
 
-_Tracking match values on linked field_
+**Tracking match values on linked field**
 
 Inverting the relationship so the conditional field's match value is tracked by the linked field instead solves the type issues, since we can benefit from the individual field type tables & columns. This however introduces a weird relationship between entities, and prevents multiple fields from being conditioned by the same field.
 
