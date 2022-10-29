@@ -239,6 +239,9 @@ export class Form {
     this.data = data;
   }
 
+  // Soft-removes a field from this form by marking it as archived.
+  //
+  // NOTE: Archiving a field severs conditions between fields.
   public removeField(fieldId: ID) {
     const fieldIdx = this.getFieldIndexById(fieldId);
 
