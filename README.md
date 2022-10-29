@@ -2,6 +2,12 @@
 
 An interface & data model for defining user-created forms, and accepting form submissions.
 
+# API
+
+```ts
+const form = new Form();
+```
+
 # Data Model
 
 The form data model maps the workflow from creating a form and its fields, to accepting submissions. The entities and their relationships are roughly:
@@ -67,6 +73,7 @@ SelectFieldChoice:
   id                ID
   fieldPropertiesID ID         -- ID for the related SelectFieldProperties
   label             string     -- human-readable label for this selection choice
+  archived          boolean    -- is this SelectFieldChoice archived, because it was soft-deleted?
 
 FileFieldProperties:
   id                ID

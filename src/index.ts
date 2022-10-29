@@ -1,5 +1,3 @@
-import uniqid from 'uniqid';
-
 type ID = string;
 type MimeTypeLike =
   | 'application'
@@ -95,7 +93,7 @@ abstract class Field {
 }
 
 export class TextField extends Field {
-  public readonly properties: {
+  public properties: {
     // Can be used for validation, but also for special behaviors & ui:
     format: 'text' | 'text-box' | 'email' | 'url';
     minLength?: number;
@@ -107,6 +105,16 @@ export class TextField extends Field {
   constructor(data: Field['data'], properties: TextField['properties']) {
     super(data);
     this.properties = properties;
+  }
+
+  public setDefault(defaultValue: string) {
+    if (!this.isValidValue(defaultValue)) {
+      throw new Error(
+        'Cannot set default value for TextField; default does not pass validation'
+      );
+    }
+
+    this.properties.defaultValue = defaultValue;
   }
 
   // Validates a text field value against the validation options.
@@ -130,13 +138,17 @@ export class TextField extends Field {
 }
 
 export class BooleanField extends Field {
-  public readonly properties: {
+  public properties: {
     defaultValue?: boolean;
   };
 
   constructor(data: Field['data'], properties: BooleanField['properties']) {
     super(data);
     this.properties = properties;
+  }
+
+  public setDefault(defaultValue: boolean) {
+    this.properties.defaultValue = defaultValue;
   }
 
   // At this point in our application stack we would have already
@@ -147,14 +159,33 @@ export class BooleanField extends Field {
   }
 }
 
-type SelectFieldChoice = {
-  id: ID;
+class SelectFieldChoice {
+  public data: {
+    id: ID;
 
-  // Linked to the field property entity, to allow users to change the underlying field and
-  // have changes propagate safely.
-  fieldPropertiesId: ID;
-  label: string;
-};
+    // Linked to the field property entity, to allow users to change the underlying field and
+    // have changes propagate safely.
+    fieldPropertiesId: ID;
+    label: string;
+    archived: boolean;
+  };
+
+  get id() {
+    return this.data.id;
+  }
+
+  get archived() {
+    return this.data.archived;
+  }
+
+  constructor(data: SelectFieldChoice['data']) {
+    this.data = data;
+  }
+
+  public setArchived() {
+    this.data.archived = true;
+  }
+}
 
 export class SelectField extends Field {
   public readonly properties: {
@@ -168,23 +199,50 @@ export class SelectField extends Field {
     this.properties = properties;
   }
 
-  public addChoice(choice: Omit<SelectFieldChoice, 'id'>) {
-    this.choices.push({
-      id: uniqid(),
-      ...choice,
-    });
-  }
-
-  public removeChoice(choiceId: ID) {
-    const choiceIdx = this.getChoiceIndexById(choiceId);
+  public setDefaultChoice(defaultChoice: SelectFieldChoice) {
+    const choiceIdx = this.getChoiceIndexById(defaultChoice.id);
 
     if (choiceIdx === -1) {
       throw new Error(
-        `Tried to remove SelectChoice(${choiceId}), does not belong to SelectField(${this.id})`
+        `Tried to set SelectChoice(${defaultChoice.id}) as default, does not belong to SelectField(${this.id})`
       );
     }
 
-    delete this.choices[choiceIdx];
+    if (defaultChoice.archived) {
+      throw new Error(
+        `Tried to set SelectChoice(${defaultChoice.id}) as default, but is archived`
+      );
+    }
+
+    this.properties.defaultChoiceId = defaultChoice.id;
+  }
+
+  public addChoice(choice: SelectFieldChoice) {
+    if (choice.archived) {
+      throw new Error(
+        `invariant: adding SelectFieldChoice(${choice.id}) to SelectField(${this.id}), but is already archived`
+      );
+    }
+
+    this.choices.push(choice);
+
+    return choice;
+  }
+
+  public removeChoice(choice: SelectFieldChoice) {
+    if (!this.hasChoice(choice)) {
+      throw new Error(
+        `Tried to archive SelectChoice(${choice.id}), does not belong to SelectField(${this.id})`
+      );
+    }
+
+    choice.setArchived();
+  }
+
+  public hasChoice(choice: SelectFieldChoice) {
+    const choiceIdx = this.getChoiceIndexById(choice.id);
+
+    return choiceIdx !== -1;
   }
 
   public isValidValue(choiceId: string) {
@@ -235,6 +293,10 @@ export class Form {
 
   public fields: Field[] = [];
 
+  get id() {
+    return this.data.id;
+  }
+
   constructor(data: Form['data']) {
     this.data = data;
   }
@@ -242,16 +304,12 @@ export class Form {
   // Soft-removes a field from this form by marking it as archived.
   //
   // NOTE: Archiving a field severs conditions between fields.
-  public removeField(fieldId: ID) {
-    const fieldIdx = this.getFieldIndexById(fieldId);
-
-    if (fieldIdx === -1) {
+  public removeField(field: Field) {
+    if (!this.hasField(field)) {
       throw new Error(
-        `Tried to remove Field(${fieldId}), does not belong to Form(${this.data.id})`
+        `Tried to archive Field(${field.id}), does not belong to Form(${this.data.id})`
       );
     }
-
-    const field = this.fields[fieldIdx];
 
     // Mark our field as archived.
     //
@@ -270,11 +328,26 @@ export class Form {
   }
 
   public addField(field: Field) {
+    if (field.archived) {
+      throw new Error(
+        `invariant: adding Field(${field.id}) to Form(${this.id}), but is already archived`
+      );
+    }
+
     this.fields.push(field);
   }
 
+  public hasField(field: Field) {
+    const fieldIdx = this.getFieldIndexById(field.id);
+    return fieldIdx !== -1;
+  }
+
   // Gets all non-archived fields for this Form, in the order they were added.
-  public getFields() {
+  public getFields(options: { includeArchived?: boolean } = {}) {
+    if (options.includeArchived) {
+      return this.fields;
+    }
+
     return this.fields.filter((field) => !field.archived);
   }
 
