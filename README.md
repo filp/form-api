@@ -2,7 +2,9 @@
 
 An interface & data model for defining user-created forms, and accepting form submissions.
 
-# API
+---
+
+# 🔗 API
 
 The following example outlines creating a form, adding fields to that form, and setting conditions between fields:
 
@@ -73,17 +75,18 @@ form.addField(subscribeNewsletterCheckbox);
 form.addField(emailCadence);
 ```
 
-# Data Model
+# 🗼 Data Model
 
-The form data model maps the workflow from creating a form and its fields, to accepting submissions. The entities and their relationships are roughly:
+## Core goals
 
-- A Form has many fields
-- Fields have normalized properties common across all field types, and a field type
-- Field types map to seperate tables with additional normalized properties for the field
-  - For example, a Field with 'text' type is mapped to a TextFieldProperties with properties such as maximum length for the field, formatting rules, etc
-- The act of submitting a response to a Form is tracked through a FormResponse entity
-- The contents of the individual form fields in a response are tracked across tables for the various data types
-  - For example, a file uploaded through a File field is tracked in a FileFieldResponse, and includes properties such as the file name, its remote URI (such as an S3 key), and its mime type
+This data model is based on a few core goals:
+
+- Forms can have multiple fields, of different types
+- Form fields can have complex user-defined properties, and it's easy to tweak, version and extend these properties as well as the underlying field types
+- Make compromises and pragmatic decisions where the ideal solution isn't clear yet
+- Form responses can be tracked
+- The contents of form submissions can be traced back and enriched based on the underlying field type, and user-defined properties
+- The contents of form submissions are resistant to changes on the original form, including fields being deleted
 
 ## Pseudo-schema
 
@@ -278,7 +281,7 @@ FileFieldResponse:
 
 Additionally, the individual field response object allows us to handle submissions to since-removed form fields appropriately, in conjunction with a field's `archived` property.
 
-## Next steps, ideas, and notes:
+# 👉 Next steps, ideas, and notes:
 
 - Ordering fields is not supported in the current data model. Could be implemented through a sort weight property on Field or similar approach.
 - Conditional fields are implemented using a compromise approach, with a path for migration if necessary.
